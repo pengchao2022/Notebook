@@ -1,0 +1,7 @@
+Mac 终端安装 Python 模块包
+
+举例：
+
+ pip install boto3 --break-system-packages
+
+ 注意 后面加： --break-system-packages
