@@ -1,0 +1,17 @@
+# use python boto3 module to get the url
+import boto3
+from datetime import datetime,timedelta
+
+s3 = boto3.client('s3')
+url = s3.generate_presigned_url(
+    ClientMethod = 'get_object',
+    Params = {'Bucket': 'allen_bucket_2025', 'Key': '/images/my_photo1.jpg'},
+    ExpiresIn = 3600
+)
+
+print(url)
+
+
+#输出结果为一个预签名的URL 
+
+https://s3.cn-northwest-1.amazonaws.com.cn/allen_bucket_2025//images/my_photo1.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=8899%2F20250830%2Fcn-northwest-1%2Fs3%2Faws4_request&X-Amz-Date=20250830T040938Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=fb6bb78d2d2e5731226f0b19f9404c01d1be0ec109639d22813733ee214b4748
