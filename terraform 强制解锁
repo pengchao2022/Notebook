@@ -1,0 +1,4 @@
+
+# terraform 强制解锁
+# 查看当前的锁信息
+terraform force-unlock -force a16eb881-1b86-85f1-8e12-53f6082ce104
