@@ -1,0 +1,3 @@
+Just write daily think what should write
+
+...
