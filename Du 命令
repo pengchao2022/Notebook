@@ -1,0 +1,95 @@
+1， 列出文件的大小 
+
+pengchaoma@Pengchaos-MacBook-Pro Desktop % du -sh *
+
+
+
+1.7M	Allen
+ 80K	Allen's Resume.pdf
+876K	Resume
+164K	Screen Shot 2025-09-24 at 10.38.56.png
+292K	Screen Shot 2025-09-24 at 12.32.25.png
+284K	Screen Shot 2025-09-24 at 13.10.58.png
+352K	Screen Shot 2025-10-07 at 04.45.36.png
+448K	Screen Shot 2025-10-09 at 12.07.56.png
+368K	Screen Shot 2025-10-09 at 12.16.08.png
+220K	Screen Shot 2025-10-14 at 07.39.30.png
+156K	Screen Shot 2025-10-14 at 07.39.46.png
+196K	Screen Shot 2025-10-14 at 07.40.41.png
+216K	Screen Shot 2025-10-19 at 12.09.30.png
+368K	Screen Shot 2025-10-21 at 18.48.48 1.png
+368K	Screen Shot 2025-10-21 at 18.48.48 2.png
+312K	Screen Shot 2025-10-21 at 19.15.03.png
+184K	Screen Shot 2025-10-22 at 13.47.31.png
+4.0K	Screen Shot 2025-10-22 at 16.06.53.png
+296K	Screen Shot 2025-10-22 at 16.11.09 1.png
+296K	Screen Shot 2025-10-22 at 16.11.09.png
+392K	Screen Shot 2025-10-22 at 17.50.41.png
+ 92K	Screen Shot 2025-10-23 at 21.29.02.png
+364K	Screen Shot 2025-10-23 at 22.37.30.png
+ 88K	Screen Shot 2025-10-26 at 01.10.33.png
+ 76K	Screen Shot 2025-10-26 at 01.10.46.png
+352K	Screen Shot 2025-10-31 at 12.10.56.png
+420K	Screen Shot 2025-10-31 at 14.48.25.png
+584K	Screen Shot 2025-11-01 at 02.24.38 1.png
+ 60K	Screen Shot 2025-11-01 at 02.29.29.png
+104K	Screen Shot 2025-11-01 at 14.28.32.png
+1.3M	Screen Shot 2025-11-01 at 17.26.26.png
+1.5M	Screen Shot 2025-11-01 at 17.26.58.png
+388K	Screen Shot 2025-11-06 at 16.36.20.png
+164K	Screen Shot 2025-11-08 at 15.32.00.png
+364K	Screen Shot 2025-11-10 at 14.09.30.png
+200K	Screen Shot 2025-11-10 at 20.47.11.png
+280K	Screen Shot 2025-11-11 at 15.35.01.png
+320K	Screen Shot 2025-11-11 at 15.36.24.png
+368K	Screen Shot 2025-11-11 at 20.15.35.png
+448K	Screen Shot 2025-11-11 at 20.16.04.png
+ 40K	ali.png
+1.4M	apple-girl.png
+2.3M	apple-girl1.png
+1.2M	apple.png
+288K	argocd2.png
+240K	aws_credentials.png
+7.5G	aws_tutorial
+4.0K	backend.tf
+ 36K	ci.yaml
+4.0K	diagnosis.log
+2.7M	ecommerce_puluo
+304K	eks_monitoring_pods.png
+688K	grape.png
+772K	hongzao.png
+276K	jenkins.png
+248K	jenkins_node_agent.png
+444K	jenkins_stageview.png
+1.9M	kiwi.png
+ 80K	latest_re
+1.7M	orange.png
+  0B	photos_e
+280K	pod_log_details.png
+112K	pome.png
+4.0K	serviceaccount
+572K	terraform-ecs-fargate-project
+367M	videoplayback.mp4
+928K	watermelon.png
+
+
+
+
+2，找出大于 100M 的文件 
+
+pengchaoma@Pengchaos-MacBook-Pro Downloads % du -h * | awk '$1 ~ /[0-9]+G/ || ($1 ~ /[0-9]+M/ && int($1) >= 100)'
+
+
+175M	4ktokkit_25.4.0_x64.dmg
+173M	AlipayKeyTool-2.0.3.dmg
+195M	TencentMeeting_0300000000_3.35.1.437.publish.x86_64.officialwebsite.dmg
+621M	VMware-Fusion-12.2.3-19436697_x86.dmg
+216M	VSCode-darwin-universal.zip
+111M	eclipse-inst-jre-mac64.dmg
+204M	googlechrome.dmg
+249M	jdk-8u202-macosx-x64.dmg
+368M	mongodb-macos-x86_64-8.0.10/bin
+369M	mongodb-macos-x86_64-8.0.10
+120M	mongodb-macos-x86_64-enterprise-6.0.24.tgz
+pengchaoma@Pengchaos-MacBook-Pro Downloads % 
+
