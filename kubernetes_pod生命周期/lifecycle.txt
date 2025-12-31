@@ -1,0 +1,381 @@
+# Kubernetes Pod 的生命周期详解
+
+Pod 的生命周期是kubernetes 中最核心的概念之一
+
+一， Pod 生命周期的 5 个主要阶段
+
+1， Pending   # 已创建， 等待调度
+2,  Running   # 已调度到节点，容器在运行
+3， Succeeded # 所有容器成功终止
+4,  Failed    # 所有容器终止， 至少一个失败
+5， Unknown   # 无法获取状态
+
+二， 详细生命周期流程图
+
+[创建pod] --> [Pending阶段] ---> [初始化阶段] -------> [Running阶段]
+                调度器选择节点     执行init容器         主容器启动 ---- Running子状态1 ------> 容器启动后钩子 poststart
+
+                                                                   Running子状态2 ------> 容器运行中
+                                                                                         就绪探针 Readiness Probe 检查
+                                                                                         存活探针 Liveness Probe 检查
+                                                                                         启动探针 Startup Probe 检查
+
+                                                                   Running子状态3 -------> 容器终止前钩子 PreStop
+
+                                                                   -----> 终止阶段 --- 优雅终止
+                                                                   Succeeded/Failed ----> 根据退出码
+                                                                
+三，每个阶段的详细说明
+
+1, Pending 等待中
+Pod 已经被 Kubernetes 系统接受， 但是有一个或多个容器尚未创建
+
+可能原因：
+1， 调度器正在选择节点
+2， 下载容器镜像
+3， 配置存储卷
+4， 等待其他依赖
+
+# yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod 
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+
+  # 可能导致Pending的配置
+  volumes:
+  - name: myvolume
+    persistentVolumeClaim:
+      claimName: mypvc # 如果PVC不存在， Pod会pending
+
+2. Running 运行中
+Pod 已经绑定到节点， 所有容器已经创建， 至少有一个容器仍在运行， 或者在启动或者重启
+kubectl get pods
+
+kubectl describe pod myapp-pod
+
+3. Succeeded 成功
+Pod 中的所有容器均已成功终止，不会启动
+常见场景
+Job/CronJob 完成
+一次性任务Pod
+
+# yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: succeeded-pod
+spec:
+  restartPolicy: Never # 成功后不重启
+  containers:
+  - name: task-container
+    image: busybox
+    command: ['sh', '-c', 'echo "Task completed successfully"']
+
+
+4. Failed 失败
+Pod 中的所有容器均已终止， 且至少有一个容器以失败告终 非0退出码
+
+# yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: failed-pod
+
+spec:
+  restartPolicy: OnFailure  # 失败后重启
+  containers:
+  - name: failing-container
+    image: busybox
+    command: ['sh', '-c', 'exit 1'] # 故意失败
+
+
+5. Unknown 未知
+通常是由于与Pod所在节点的通信错误导致的
+
+四， 容器生命后期钩子 lifecycle Hooks
+
+1, PostStart 启动后钩子
+容器创建后立即执行，但不保证在容器entrypoint 之前执行
+
+# yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lifecycle-demo
+spec:
+  containers:
+  - name: lifecycle-demo-container
+    image: nginx
+    lifecycle:
+      poststart:
+        exec:
+          command: ["/bin/sh", "-c", "echo 'container started at $(date)' > /usr/share/nginx/html/start-time.html"]
+
+
+2. PreStop 停止钩子
+容器终止前执行，用于优雅关闭
+
+# yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: graceful-shutdown
+spec:
+  containers:
+  - name: web-server
+    image: nginx
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "nginx -s quit; while pgrep nginx; do sleep 1; done"]
+
+    ports:
+    - containerPort: 80
+
+五. 探针 Probes
+
+1. 启动探针 Startup Probe
+确保应用程序已经启动， 在启动探针成功之前，其他探针都会被禁用
+
+# yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: startup-probe-demo
+spec:
+  containers:
+  - name: slow-starting-app
+    image: myapp:latest
+    startupProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 30   # 最多尝试 30 次
+      periodSeconds: 10    # 每10秒检查一次
+
+      # 在启动探针成功之前，不会进行存活和就绪检查
+
+2. 存活探针 liveness Probe
+检查容器是否还在运行， 如果失败， kubelet 会杀死容器并根据重启策略来重启容器
+检查容器是否还在运行，如果失败，kubelet 会杀死容器并根据重启策略来重启容器
+
+# yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-demo
+spec:
+  containers:
+  - name: liveness
+    image: registry.k8s.io/liveness
+    args:
+    - /server
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        httpHeaders:
+        - name: Custom-httpHeaders
+          value: Awesome
+      initialDeplaySeconds: 3 # 容器启动后等待3秒
+      periodSeconds: 3   # 每3秒检查一次
+
+3. 就绪探针 readiness Probe
+检查容器是否准备好服务请求，如果失败，从service 的端点列表中移除 pod 
+
+# yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-demo
+spec:
+  containers:
+  - name: webapp
+    image: myapp:latest
+    readinessProbe:
+      exec:
+        command:
+        - cat:
+        - /tmp/healthy
+      initialDeplaySeconds: 5
+      periodSeconds: 5
+
+
+六. 完整的生命周期示例
+
+# yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: full-lifecycle-demo
+  labels:
+    app: lifecycle-demo
+spec:
+  # 初始化容器
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo "Initializing..." && sleep 5']
+
+  # 主容器
+  containers:
+  - name: main-container
+    iamge: nginx:1.21
+    ports:
+    - containerPort: 80
+
+    # 环境变量
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fielPath: metadata.name
+
+    # 生命周期钩子
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "echo 'PostStart: container $(hostname) started' > /usr/share/nginx/html/lifecycle.html"]
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "echo 'PreStop: Graceful shutdown initiated' && nginx -s quit"]
+
+    # 探针配置
+    startupProbe:
+      tcpSocket:
+        port: 80
+      failureThreshold: 30
+      periodSeconds: 10
+
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 80
+      initialDeplaySeconds: 30
+      periodSeconds: 10
+      failureThreshold: 3
+
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDeplaySeconds: 5
+      periodSeconds: 5
+
+    # 重启策略
+    restartPolicy: Always
+
+    # 优雅终止期限
+    terminationGracefulPeriodSeconds: 60
+
+
+七. Pod 的创建和调度过程
+kubectl apply -f pod.yaml
+|
+API server
+|
+写入 etcd 状态为pending
+|
+Scheduler 选择合适节点
+|
+API Server 更新 Pod 绑定信息
+|
+kubelet 创建 Pod
+|
+|---> 创建 pause 容器 pod 沙箱
+|---> 创建网络命名空间
+|---> 挂在存储卷
+|---> 按顺序创建容器:
+            |---> 执行 Init 容器 按顺序
+            |---> 执行 主容器
+                      |----> 执行 PostStart 钩子
+                      |----> 执行 Startup Probe
+                      |----> 执行 Liveness/Readiness Probe
+                      |----> 运行 应用程序
+
+            |---> 监控容器状态
+
+八. Pod的终止过程
+
+# bash
+# 触发终止
+kubectl delete pod mypod
+# 或
+kubectl scale deployment mydeployment --replicas=0
+
+终止流程
+
+1. 用户发送删除命令
+       |
+   API server 更新Pod 的 deletionTimestamp
+       |
+   Pod 状态变为 Terminating 
+       |
+   Endpoints Controller 从 Service 移除 Pod
+       | 
+   kubelet 开始优雅的终止
+       |-----> 如果定义了 PreStop 钩子 ---> 执行
+       |-----> 向容器发送 sigterm 信号
+       |-----> 等待 terminationGracefulPeriodSeconds 默认 3 秒
+                      |-----> 容器处理 sigterm
+                      |-----> 正常关闭
+                      如果超时 ---> 发送 sigkill 强制终止
+
+6. 清理资源 网络 存储
+    |
+7. 从API server 删除 Pod 记录
+
+九. 重启策略 restartPolicy
+
+# yaml 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: restart-policy-demo
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command: ['sh', '-c', 'sleep 10; exit 1']  # 10 秒后失败
+
+# 重启策略 三个选项
+# Always 默认， 总是重启
+# OnFailure: 失败时重启
+# Never: 从不重启
+restartPolicy: OnFailure
+
+# 不同控制器对重启策略的限制
+
+Deployment/ReplicaSet/StatefulSet: 必须是 Always
+
+Job/CronJob: 可以是 Never 或 OnFailure
+
+DaemonSet: 必须是 Always
+
+Pod 生命周期总结表格
+
+Pending  在创建 pod 时触发  持续时间 不定 ，可操作点 调度器决策， 镜像拉取
+
+Init     初始化容器， init 容器运行时间， init 容器执行 
+
+Running  主容器启动  容器运行期间 探针，钩子，业务逻辑
+
+Terminating  删除Pod , terminationGracefulPeriodSeconds preStop钩子，优雅关闭
+
+Succeeded/Failed    容器终止  最终状态 重启策略决定是够重启
+
+
+
