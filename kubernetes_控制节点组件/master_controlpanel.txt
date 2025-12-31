@@ -1,0 +1,103 @@
+# kubernetes Master 组件详解
+
+kubernetes master 控制平面 是集群的大脑， 负责管理整个集群
+
+# 核心组件详解
+
+1, kube-apiserver API 服务器
+作用： 集群的唯一入口， 所有组件都通过它进行通信 
+API server: 集群的唯一入口，所有组件都通过它进行通信
+
+# 查看 API Server 状态
+kubectl cluster-info 
+
+API server 的主要功能：
+1， 认证， 授权， 准入控制
+2. 提供 RESTFUL API 
+3. 数据验证和持久化到 etcd 
+4. 支持水平扩展 多副本
+
+2， etcd 分布式键值存储 
+作用： 集群的数据库， 存储所有集群数据
+
+存储的数据类型：
+1， 节点信息
+2， Pod信息
+3， 服务信息
+4， 配置信息 configMap secret 
+5.  权限信息 RBAC 
+6， 网络信息 Network Policies
+
+
+3, kube-Scheduler 调度器
+作用： 决定pod 运行在哪个节点
+
+4, kube-controller-manager 控制器管理器
+作用： 运行各种控制器，确保集群达到期望状态
+包含的核心控制器：
+Node Controller 节点控制器
+Replication Controller 副本控制器
+Endpoint Controller 端点控制器
+Service Account & Token Controller  服务账户控制器
+其他重要控制器：
+Deployment Controller
+Statefulset Controller
+DaemonSet Controller
+Job Controller
+CronJob Controller
+Namespace Controller
+PV/PVC Controller
+
+5, Cloud Controller Manager 云控制器管理器
+作用： 与云提供商API 交互
+
+云控制器包含：
+Node Controller : 从云平台获取节点信息
+Route Controller : 配置云网络路由
+Service Controller : 管理云负载均衡器
+Volume Controller : 管理云存储卷
+
+# Master 组件通信流程
+典型工作流程  创建 Pod 
+
+用户：kubectl apply -f pod.yaml
+|
+kubectl kube-apiserver RestFul API
+|
+kube-apiserver  验证并写入 etcd 
+|
+kube-Scheduler 监控到未调度 Pod 
+|
+kube-Scheduler  选择节点 通过 Kube-apiserver 更新 pod 
+|
+kube-apiServer  写入etcd Pod 绑定到节点
+|
+目标节点 kubelet 监控 Pod 绑定
+|
+kubelet 创建Pod 报告状态 kube-apiServer
+|
+kube-apiServer 更新 etcd 
+|
+用户 kubectl get pods 查看状态 
+
+检查组件健康状态
+kubectl get componentsstatus 
+
+pengchaoma@pengchaos-MacBook-Pro ali_inter % kubectl get componentstatus
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS    MESSAGE   ERROR
+controller-manager   Healthy   ok        
+scheduler            Healthy   ok        
+etcd-0               Healthy   ok        
+
+
+kubernetes 控制节点组件总结
+
+kube-apiServer  作用： 集群入口，RestFul API  默认端口：6443 
+etcd   作用： 集群状态数据库   默认端口 2379 2380  本地磁盘
+kube-scheduler  作用：Pod 调度决策 默认端口 10251 
+kube-controller-manager  作用： 运行各种控制器 
+cloud-controller-manager 作用： 云平台集成 
+
+
+
