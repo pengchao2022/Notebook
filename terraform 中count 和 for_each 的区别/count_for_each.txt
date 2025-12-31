@@ -1,0 +1,51 @@
+
+# terrafrom 中 for_each 和 count 的区别 
+
+1, count - 基于索引的创建 
+
+# 使用 count 基于数字索引
+resource "aws_instance" "example_count" {
+    count = 3 # 创建3个完全相同的实例
+
+    ami = "ami-0c55b159cbfafe1f0"
+    instance_type = "t3.micro"
+
+    tags = {
+        Name = "server-${count.index}" # 使用 count.index 区分
+    }
+}
+
+for_each - 基于集合的创建
+
+# 使用 for_each - 基于集合
+resource "aws_instance" "example_for_each" {
+    for_each = toset(["web", "app", "db"]) # 基于集合的创建
+
+    ami = "ami-0c55b159cbfafe1f0"
+    instance_type = "t3.micro"
+    
+    tags = {
+        Name = "server-${each.key}" # 使用 each.key 来区分
+    }
+}
+
+核心区别对比表
+
+count  基于整数索引
+for_each 基于集合索引
+
+count 的标识方式 是 索引号 (0, 1, 2, 3, ...)
+for_each 是集合的键或值
+
+count 的资源地址 aws_instance.example[0]
+for_each 的资源地址 aws_instance.example["web"]
+
+count 的修改影响 索引变化导致资源重建
+for_each 的修改影响 显示命名依赖
+
+count 的使用场景 是完全相同的资源
+for_each 的使用场景 是 差异配置资源
+
+count 的使用场景 是完全相同的资源
+for_each 的使用场景是差异配置资源 
+
